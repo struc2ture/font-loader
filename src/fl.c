@@ -18,7 +18,7 @@ static inline float convert_26dot6_float(FT_Pos x)
     return (float)(x / 64.0f);
 }
 
-static void draw_ft_bitmap(FT_Bitmap *bitmap, int x_min, int y_min, unsigned char *pixels, int width, int height)
+static void draw_ft_bitmap(FT_Bitmap *bitmap, int x_min, int y_min, unsigned char *pixels, int width, int height, int channels)
 {
     int x_max = x_min + bitmap->width;
     int y_max = y_min + bitmap->rows;
@@ -31,12 +31,15 @@ static void draw_ft_bitmap(FT_Bitmap *bitmap, int x_min, int y_min, unsigned cha
             {
                 continue;
             }
-            pixels[x + y * width] = bitmap->buffer[q * bitmap->width + p];
+            for (int ch_i = 0; ch_i < channels; ch_i++)
+            {
+                pixels[y * width * channels + x * channels + ch_i] = bitmap->buffer[q * bitmap->width + p];
+            }
         }
     }
 }
 
-API_FUNC FontAtlas font_loader_create_atlas(const char *path, int width, int height, float size, float dpi_scale)
+API_FUNC FontAtlas font_loader_create_atlas(const char *path, int width, int height, float size, float dpi_scale, int channels)
 {
     FT_Library ft_library;
     FT_Error error;
@@ -68,7 +71,7 @@ API_FUNC FontAtlas font_loader_create_atlas(const char *path, int width, int hei
 
     float row_max_height = 0;
 
-    unsigned char *pixels = xcalloc(width * height);
+    unsigned char *pixels = xcalloc(width * height * channels);
 
     for (int ch = starting_ch; ch < last_ch; ch++)
     {
@@ -90,7 +93,8 @@ API_FUNC FontAtlas font_loader_create_atlas(const char *path, int width, int hei
             truncate_to_int(pen_y),
             pixels,
             width,
-            height
+            height,
+            channels
         );
 
         GlyphMetric g = {};
@@ -121,7 +125,8 @@ API_FUNC FontAtlas font_loader_create_atlas(const char *path, int width, int hei
         .height = height,
         .ascender = ft_face->size->metrics.ascender / 64.0f,
         .dpi_scale = dpi_scale,
-        .glyph_metrics = glyph_metrics
+        .channels = channels,
+        .glyph_metrics = glyph_metrics,
     };
 
     FT_Done_Face(ft_face);

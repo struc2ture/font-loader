@@ -22,6 +22,7 @@ typedef struct FontAtlas
     int height;
     float ascender;
     float dpi_scale;
+    int channels;
     GlyphMetric *glyph_metrics;
 
 } FontAtlas;
@@ -39,7 +40,7 @@ typedef struct GlyphQuad
 
 } GlyphQuad;
 
-FontAtlas font_loader_create_atlas(const char *path, int width, int height, float size, float dpi_scale);
+FontAtlas font_loader_create_atlas(const char *path, int width, int height, float size, float dpi_scale, int channels);
 GlyphQuad font_loader_get_glyph_quad(const FontAtlas *atlas, unsigned char ch, float x, float y);
 float font_loader_get_advance_x(const FontAtlas *atlas, unsigned char ch);
 float font_loader_get_ascender(const FontAtlas *atlas);
