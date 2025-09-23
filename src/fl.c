@@ -3,6 +3,7 @@
 #include "common/types.h"
 #include "common/util.h"
 
+#include <float.h>
 #include <freetype/freetype.h>
 
 // #define API_FUNC __attribute__((visibility("default")))
@@ -137,12 +138,14 @@ API_FUNC FontAtlas font_loader_create_atlas(const char *path, int width, int hei
 
 API_FUNC GlyphQuad font_loader_get_glyph_quad(const FontAtlas *atlas, unsigned char ch, float x, float y)
 {
-    GlyphMetric *gm = atlas->glyph_metrics +ch;
+    const GlyphMetric *gm = atlas->glyph_metrics +ch;
 
-    float screen_min_x = x + gm->offset_x / atlas->dpi_scale;
-    float screen_min_y = y - gm->offset_y / atlas->dpi_scale;
-    float screen_max_x = screen_min_x + gm->width / atlas->dpi_scale;
-    float screen_max_y = screen_min_y + gm->height / atlas->dpi_scale;
+    const f32 i_dpi_scale = 1.0f / atlas->dpi_scale;
+
+    float screen_min_x = x + gm->offset_x * i_dpi_scale;
+    float screen_min_y = y - gm->offset_y * i_dpi_scale;
+    float screen_max_x = screen_min_x + gm->width * i_dpi_scale;
+    float screen_max_y = screen_min_y + gm->height * i_dpi_scale;
 
     GlyphQuad q =
     {
@@ -168,4 +171,43 @@ API_FUNC float font_loader_get_advance_x(const FontAtlas *atlas, unsigned char c
 API_FUNC float font_loader_get_ascender(const FontAtlas *atlas)
 {
     return atlas->ascender / atlas->dpi_scale;
+}
+
+API_FUNC StringRect font_loader_get_string_rect(const FontAtlas *atlas, const char *str)
+{
+    int len = strlen(str);
+
+    const f32 i_dpi_scale = 1.0f / atlas->dpi_scale;
+
+    const f32 ascender = atlas->ascender * i_dpi_scale;
+
+    f32 min_min_y = FLT_MAX, max_max_y = -FLT_MAX;
+    f32 current_x = 0.0f, current_y = 0.0f;
+    f32 max_x = -FLT_MAX;
+    for (int i = 0; i < len; i++)
+    {
+        if (str[i] == '\n')
+        {
+            current_x = 0.0f;
+            current_y += ascender;
+            continue;
+        }
+        const GlyphMetric *gm = atlas->glyph_metrics + str[i];
+
+        f32 min_y = current_y + ascender - gm->offset_y * i_dpi_scale;
+        f32 max_y = min_y + gm->height * i_dpi_scale;
+
+        if (min_y < min_min_y) min_min_y = min_y;
+        if (max_y > max_max_y) max_max_y = max_y;
+
+        current_x += gm->advance_x * i_dpi_scale;
+        if (current_x > max_x) max_x = current_x;
+    }
+
+    return (StringRect){
+        .min_x = 0.0f,
+        .max_x = max_x,
+        .min_y = min_min_y,
+        .max_y = max_max_y
+    };
 }

@@ -40,7 +40,15 @@ typedef struct GlyphQuad
 
 } GlyphQuad;
 
+typedef struct StringRect
+{
+    float min_x, min_y;
+    float max_x, max_y;
+
+} StringRect;
+
 FontAtlas font_loader_create_atlas(const char *path, int width, int height, float size, float dpi_scale, int channels);
 GlyphQuad font_loader_get_glyph_quad(const FontAtlas *atlas, unsigned char ch, float x, float y);
 float font_loader_get_advance_x(const FontAtlas *atlas, unsigned char ch);
 float font_loader_get_ascender(const FontAtlas *atlas);
+StringRect font_loader_get_string_rect(const FontAtlas *atlas, const char *str);
